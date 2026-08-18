@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bhugtaanmilaan — payment tally</title>
+<meta name="description" content="Bhugtaanmilaan logs each sale's tender through the day, then reconciles cash / UPI / card totals against the closing counts — flagging which channel shows the gap.">
+<style>
+  :root{--bg:#eff3f8;--card:#fff;--ink:#101c2a;--muted:#516274;--brand:#3e5e8e;--brand-ink:#243c5b;--line:#d7e0ec;--accent:#e5ebf4}
+  @media (prefers-color-scheme:dark){:root{--bg:#0d1218;--card:#151b24;--ink:#e4eaf3;--muted:#93a3b6;--brand:#6089c0;--brand-ink:#bcd0ea;--line:#232d39;--accent:#141c27}}
+  *{box-sizing:border-box}html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  .wrap{max-width:960px;margin:0 auto;padding:0 20px}
+  header{padding:64px 0 24px;text-align:center}
+  .eyebrow{color:var(--brand);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:13px}
+  h1{font-size:44px;margin:.2em 0 .1em;letter-spacing:-.02em}
+  .tag{color:var(--muted);font-size:19px;max-width:640px;margin:8px auto 0}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:28px 0}
+  @media (max-width:760px){.grid{grid-template-columns:1fr}h1{font-size:34px}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .card h2{margin:0 0 8px;font-size:20px}
+  input{padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-size:14px;width:100%}
+  button{background:var(--brand);color:#fff;border:0;border-radius:10px;padding:9px 12px;cursor:pointer}
+  .btns{display:flex;gap:8px;margin:8px 0}.btns button{flex:1;background:transparent;color:var(--brand);border:1px solid var(--line)}
+  .two{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:8px 0}
+  .rowline{display:flex;justify-content:space-between;padding:6px 0;border-top:1px dashed var(--line);font-size:14px}
+  .ok{color:#1f8a4c;font-weight:700}.bad{color:#c0392b;font-weight:700}
+  footer{color:var(--muted);font-size:13px;text-align:center;padding:40px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Bhugtaanmilaan · भुगतान मिलान</div>
+    <h1>Which channel is short?</h1>
+    <p class="tag">UPI opened a new leak: a cash sale marked as UPI, or the reverse. Log each tender as
+      it happens, then reconcile cash / UPI / card against the counts — the gap names the channel.</p>
+  </header>
+  <div class="grid">
+    <div class="card">
+      <h2>Try it</h2>
+      <input id="amt" type="number" placeholder="Amount ₹">
+      <div class="btns">
+        <button onclick="log('cash')">Cash</button>
+        <button onclick="log('upi')">UPI</button>
+        <button onclick="log('card')">Card</button>
+      </div>
+      <div style="font-weight:700;margin-top:6px">At close — counted totals</div>
+      <div class="two">
+        <input id="cc" type="number" placeholder="Cash">
+        <input id="cu" type="number" placeholder="UPI">
+        <input id="cd" type="number" placeholder="Card">
+      </div>
+      <div id="out"></div>
+    </div>
+    <div class="card">
+      <h2>An independent log</h2>
+      <p style="color:var(--muted)">If the day's total were back-derived from the same closing counts,
+        the gap would be zero by construction. Bhugtaanmilaan is the running log through the day, so the
+        comparison is real.</p>
+      <p style="color:var(--muted);font-size:14px">Flutter → Go → PostgreSQL journal service.</p>
+    </div>
+  </div>
+  <footer>Bhugtaanmilaan · a local-first shopkeeper tool · offline, no account.</footer>
+</div>
+<script>
+  const logged={cash:0,upi:0,card:0};
+  const inr=v=>'₹'+(+v).toFixed(2);
+  function log(ch){ const a=+document.getElementById('amt').value||0; if(a<=0) return; logged[ch]+=a; document.getElementById('amt').value=''; render(); }
+  function render(){
+    const cnt={cash:document.getElementById('cc').value, upi:document.getElementById('cu').value, card:document.getElementById('cd').value};
+    document.getElementById('out').innerHTML=['cash','upi','card'].map(ch=>{
+      const has=cnt[ch].trim()!==''; const gap=(+cnt[ch]||0)-logged[ch];
+      const cell = has ? `<span class="${Math.abs(gap)<1e-9?'ok':'bad'}">${gap>=0?'+':''}${inr(gap)}</span>` : '—';
+      return `<div class="rowline"><span>${ch.toUpperCase()} · logged ${inr(logged[ch])}</span>${cell}</div>`;
+    }).join('');
+  }
+  ['cc','cu','cd'].forEach(id=>document.getElementById(id).addEventListener('input',render)); render();
+</script>
+</body>
+</html>
